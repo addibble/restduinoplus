@@ -1,3 +1,4 @@
+
 /*
  RESTduino
  
@@ -23,6 +24,16 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
+#define _DALLAS true
+
+#if _DALLAS
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONEWIRE_PIN 8
+OneWire ow(ONEWIRE_PIN);
+DallasTemperature sensors(&ow);
+#endif
+
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network:
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
@@ -43,7 +54,9 @@ void setup()
   //  turn on serial (for debuggin)
   Serial.begin(9600);
 #endif
-
+#ifdef _DALLAS
+  sensors.begin();
+#endif
   // start the Ethernet connection and the server:
   Ethernet.begin(mac, ip);
   server.begin();
@@ -60,6 +73,8 @@ void loop()
   char clientline[BUFSIZE];
   int index = 0;
   // listen for incoming clients
+
+
 #if defined(ARDUINO) && ARDUINO >= 100
   EthernetClient client = server.available();
 #else
@@ -202,6 +217,19 @@ void loop()
 #endif
 
             } 
+#if _DALLAS
+            else if(pin[0] == 'o' || pin[0] == 'O') {
+              Serial.print("Requesting temperatures...");
+              sensors.requestTemperatures(); // Send the command to get temperatures
+              float t=sensors.getTempCByIndex(0);
+              int ti=t;
+              unsigned int tf=(t-ti)*100.0;
+              sprintf(outValue, "%d.%d", ti, tf);
+# if DEBUG
+              Serial.println(outValue);
+# endif
+            }
+#endif
             else if(pin[0] != NULL) {
 
               //  digital
